@@ -101,7 +101,7 @@
     },
     {
       "parameters": {
-        "chatId": "1438597157",
+        "chatId": "<CHATID>",
         "text": "✅ File copied successfully!",
         "replyMarkup": "=✅ File copied successfully!\n📄 File: {{$json[\"filename\"]}}\n🕒 Time: {{$json[\"datetime\"]}}",
         "forceReply": {},
