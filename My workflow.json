@@ -1,0 +1,223 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerOn": "folder",
+        "path": "<YOUR LOCAL DOWNLOAD PATH>",
+        "events": [
+          "add"
+        ],
+        "options": {
+          "usePolling": "=={{ 60 }}\n\n"
+        }
+      },
+      "type": "n8n-nodes-base.localFileTrigger",
+      "typeVersion": 1,
+      "position": [
+        -768,
+        -336
+      ],
+      "id": "30d4de5a-6a3d-4a39-b152-2bd90cf6404c",
+      "name": "Local File Trigger",
+      "notesInFlow": true,
+      "notes": "Every: 1 minute\n"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a9801806-384d-418a-8a43-b02ebdb6b436",
+              "leftValue": ".pdf, .docx, .xlsx, .mp4, .mp3, .zip, .png, .jpg",
+              "rightValue": ".pdf, .docx, .xlsx, .mp4, .mp3, .zip, .png, .jpg",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": "={{ $json[\"fileName\"].toLowerCase() }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -496,
+        -336
+      ],
+      "id": "5467d59c-b5e4-4a1b-b383-c892d345316a",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "=$path = \"{{ $json[\"path\"] }}\"\n$lastSize = -1\nwhile ($true) {\n    $size = (Get-Item $path).Length\n    if ($size -eq $lastSize) { break }\n    $lastSize = $size\n    Start-Sleep -Seconds 1\n}\n"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -208,
+        -416
+      ],
+      "id": "2a3e32de-9a83-4138-8a02-024ce62a30b9",
+      "name": "Wait",
+      "webhookId": "47e3041c-196d-4e36-8ef8-385bbfd85805"
+    },
+    {
+      "parameters": {
+        "jsCode": "const path = $json[\"path\"];// Full current file path\nconst fileName = path.split(\"\\\\\").pop();  // Extract file name\nconst destinationFolder = \"<YOUR SERVER PATH>\";  // Target folder\nconst destination = `${destinationFolder}\\\\${fileName}`;  // Full path for new location\n\nreturn {\n  json: {\n    source: path,\n    fileName,\n    destinationFolder,\n    destination\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -416
+      ],
+      "id": "b3bf4748-5eea-413c-acbd-4cc98a0c345d",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "command": "=powershell -Command \"$src = '{{ $json.source }}'; $dst = '{{ $json.destination }}'; $folder = Split-Path $dst; if (!(Test-Path -Path $folder)) { New-Item -ItemType Directory -Path $folder | Out-Null }; Copy-Item -Path $src -Destination $dst -Force\"\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        224,
+        -416
+      ],
+      "id": "979a30d5-6fcd-4327-afa1-8723ce720f96",
+      "name": "Execute Command"
+    },
+    {
+      "parameters": {
+        "chatId": "1438597157",
+        "text": "✅ File copied successfully!",
+        "replyMarkup": "=✅ File copied successfully!\n📄 File: {{$json[\"filename\"]}}\n🕒 Time: {{$json[\"datetime\"]}}",
+        "forceReply": {},
+        "replyKeyboardOptions": {},
+        "replyKeyboardRemove": {},
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        512,
+        -416
+      ],
+      "id": "6fc50888-9ef8-485f-8a19-969f4738b8d6",
+      "name": "Send a text message",
+      "webhookId": "20595921-6a9d-428b-b4b6-60538c8af749",
+      "credentials": {
+        "telegramApi": {
+          "id": "04rtJeGyzY6nx8kW",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "errorMessage": "Error Failed"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        -256
+      ],
+      "id": "80dd5481-bccc-4f57-9e6d-626df627efa4",
+      "name": "Stop and Error"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Local File Trigger": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stop and Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Execute Command",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Command": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "0c0f6114-b725-4100-9ab2-f0e1af193d95",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "06d28b3a3cacd37a3a72cdd22a5c4e9c7e16781a4f70c1013d35024756662a3e"
+  },
+  "id": "x0aWBkFpgFFDct0B",
+  "tags": []
+}
